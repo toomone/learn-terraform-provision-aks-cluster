@@ -1,19 +1,27 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: MPL-2.0
-
-resource "random_pet" "prefix" {}
-
 provider "azurerm" {
   features {}
 }
 
+resource "random_pet" "prefix" {
+ length = 1
+}
+
 resource "azurerm_resource_group" "default" {
-  name     = "${random_pet.prefix.id}-rg"
-  location = "West US 2"
+  name     = "thcousin-${random_pet.prefix.id}-rg"
+  location = "France Central"
 
   tags = {
     environment = "Demo"
   }
+}
+
+resource "azurerm_container_registry" "default" {
+  name                = "${random_pet.prefix.id}acr"
+  resource_group_name = azurerm_resource_group.default.name
+  location            = azurerm_resource_group.default.location
+  sku                 = "Basic"
 }
 
 resource "azurerm_kubernetes_cluster" "default" {
@@ -42,3 +50,12 @@ resource "azurerm_kubernetes_cluster" "default" {
     environment = "Demo"
   }
 }
+
+resource "azurerm_role_assignment" "default" {
+  principal_id                     = var.appId
+  role_definition_name             = "AcrPull"
+  scope                            = azurerm_container_registry.default.id
+  skip_service_principal_aad_check = true
+}
+
+
